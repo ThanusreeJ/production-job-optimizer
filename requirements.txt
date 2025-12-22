@@ -1,0 +1,81 @@
+
+
+# ================================
+# CORE LLM & AGENT FRAMEWORK
+# ================================
+
+# LangChain - Core framework for building LLM applications
+langchain>=0.1.0
+langchain-core>=0.1.0
+
+# LangChain Community - Additional integrations
+langchain-community>=0.0.20
+
+# Groq Integration - High-speed LLM inference
+langchain-groq>=0.0.3
+
+# LangGraph - Multi-agent orchestration and state management
+langgraph>=0.0.40
+
+# LangSmith - Tracing, debugging, and evaluation
+langsmith>=0.0.77
+
+# ================================
+# WEB UI & VISUALIZATION
+# ================================
+
+# Streamlit - Interactive web dashboard framework
+streamlit>=1.29.0
+
+# Plotly - Interactive charts and Gantt visualizations
+plotly>=5.18.0
+
+# ================================
+# DATA HANDLING
+# ================================
+
+# Pandas - Data manipulation and analysis
+pandas>=2.1.0
+
+# NumPy - Numerical computing
+numpy>=1.24.0
+
+# ================================
+# CONFIGURATION & UTILITIES
+# ================================
+
+# PyYAML - YAML configuration file parsing
+pyyaml>=6.0
+
+# Python-dotenv - Environment variable management
+python-dotenv>=1.0.0
+
+# ================================
+# API & BACKEND (Optional)
+# ================================
+
+# FastAPI - Modern API framework (for production deployment)
+fastapi>=0.108.0
+
+# Uvicorn - ASGI server for FastAPI
+uvicorn>=0.25.0
+
+# Pydantic - Data validation
+pydantic>=2.5.0
+
+# ================================
+# EXPORT & REPORTING
+# ================================
+
+# OpenPyXL - Excel file generation
+openpyxl>=3.1.0
+
+# ReportLab - PDF generation
+reportlab>=4.0.0
+
+# ================================
+# DEVELOPMENT TOOLS
+# ================================
+
+# Python-dateutil - Date/time utilities
+python-dateutil>=2.8.0

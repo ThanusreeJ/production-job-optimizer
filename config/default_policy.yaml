@@ -1,0 +1,67 @@
+# ================================
+# DEFAULT SCHEDULING POLICY
+# Production Job Optimizer Configuration
+# ================================
+
+# Shift Configuration
+shift:
+  start: "08:00"
+  end: "16:00"
+  max_overtime_minutes: 0  # No overtime allowed
+
+# Setup Times (in minutes)
+# Format: "FromProduct->ToProduct": minutes
+setup_times:
+  # Same product transitions (quick)
+  "P_A->P_A": 5
+  "P_B->P_B": 5
+  "P_C->P_C": 5
+  
+  # Different product transitions (requires cleanup/reconfiguration)
+  "P_A->P_B": 30
+  "P_A->P_C": 25
+  "P_B->P_A": 30
+  "P_B->P_C": 35
+  "P_C->P_A": 25
+  "P_C->P_B": 35
+
+# Priority Weights
+# Higher weight = more important in optimization
+priority_weights:
+  rush: 10.0      # Rush orders are 10x more important
+  normal: 1.0     # Normal orders baseline
+
+# Objective Function Weights
+# These control what the optimizer prioritizes
+objective_weights:
+  tardiness: 1.0      # Meeting deadlines (higher = prioritize on-time delivery)
+  setup: 0.5          # Minimizing setup time (higher = batch more aggressively)
+  utilization: 0.3    # Balancing machine loads (higher = balance more evenly)
+
+# Machine Configuration
+machines:
+  - machine_id: "M1"
+    capabilities: ["P_A", "P_B", "P_C"]  # Can produce all product types
+    capacity_per_hour: 60
+    downtime_windows: []  # No scheduled downtime
+    operator_id: null
+  
+  - machine_id: "M2"
+    capabilities: ["P_A", "P_B", "P_C"]
+    capacity_per_hour: 60
+    downtime_windows:
+      - start_time: "10:00"
+        end_time: "11:30"
+        reason: "Scheduled Maintenance"
+    operator_id: null
+  
+  - machine_id: "M3"
+    capabilities: ["P_A", "P_B", "P_C"]  # Can produce all product types
+    capacity_per_hour: 60
+    downtime_windows: []
+    operator_id: null
+
+# WIP (Work in Progress) Limits
+# wip_limit:
+#   max_per_machine: 5
+#   max_total: 15

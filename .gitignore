@@ -1,0 +1,45 @@
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# Environment variables (CONTAINS API KEYS - DO NOT COMMIT!)
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# Data files (optional - remove if you want to commit sample data)
+data/*.csv
+data/*.xlsx
+data/*.json
+
+# Logs
+*.log
+logs/
+
+# Test output
+.pytest_cache/
+.coverage
+htmlcov/
