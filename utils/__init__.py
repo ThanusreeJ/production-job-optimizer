@@ -1,10 +1,10 @@
 """
-Utilities package for the Multi-Agent Production Job Optimizer.
+Utility functions package for Production Job Optimizer.
 
-This package contains helper functions and utilities for:
-- KPI calculations
-- Configuration loading
-- Test data generation
+This package contains helper utilities:
+- config_loader: Load and parse YAML/JSON configurations
+- data_generator: Generate random jobs and test scenarios
+- baseline_scheduler: Simple FIFO scheduler for comparison
 """
 
-__all__ = ['calculate_kpis', 'load_config', 'generate_test_data']
+__all__ = ['config_loader', 'data_generator', 'baseline_scheduler']

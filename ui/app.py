@@ -34,6 +34,7 @@ from models.machine import Machine, Constraint, DowntimeWindow
 from workflows.orchestrator import OptimizationOrchestrator
 from utils.config_loader import load_config, save_config
 from utils.data_generator import generate_random_jobs, export_jobs_to_csv
+from utils.baseline_scheduler import BaselineScheduler
 
 # Page configuration
 st.set_page_config(
@@ -88,8 +89,12 @@ if 'config' not in st.session_state:
     st.session_state.config = load_config()
 if 'optimization_result' not in st.session_state:
     st.session_state.optimization_result = None
+if 'baseline_result' not in st.session_state:
+    st.session_state.baseline_result = None
 if 'agent_status' not in st.session_state:
     st.session_state.agent_status = {}
+if 'show_comparison' not in st.session_state:
+    st.session_state.show_comparison = False
 
 
 def main():
@@ -282,14 +287,39 @@ def render_control_zone():
     
     st.markdown("---")
     
-    # Run button
-    col_btn1, col_btn2 = st.columns([1, 3])
+    # Run buttons with better layout
+    st.markdown("### 🚀 Optimization Options")
+    
+    col_btn1, col_btn2, col_btn3 = st.columns([2, 2, 1])
     
     with col_btn1:
-        run_button = st.button("🚀 RUN MULTI-AGENT OPTIMIZER", type="primary", use_container_width=True)
+        ai_button = st.button(
+            "🤖 AI Multi-Agent Optimizer", 
+            type="primary", 
+            use_container_width=True,
+            help="Run the intelligent multi-agent optimization system"
+        )
     
-    if run_button:
-        run_optimization()
+    with col_btn2:
+        baseline_button = st.button(
+            "📊 Run With Baseline Comparison",
+            type="secondary",
+            use_container_width=True,
+            help="Compare AI optimizer against simple FIFO baseline"
+        )
+    
+    with col_btn3:
+        if st.button("🔄", use_container_width=True, help="Reset results"):
+            st.session_state.optimization_result = None
+            st.session_state.baseline_result = None
+            st.session_state.show_comparison = False
+            st.rerun()
+    
+    if ai_button:
+        run_optimization(with_baseline=False)
+    
+    if baseline_button:
+        run_optimization(with_baseline=True)
     
     # Agent status display
     if st.session_state.get('optimization_running', False):
@@ -306,42 +336,170 @@ def render_control_zone():
             st.info("✅ Constraint Agent: Validating...")
 
 
-def run_optimization():
-    """Execute the multi-agent optimization."""
+def run_optimization(with_baseline: bool = False):
+    """Execute the multi-agent optimization with real-time agent status display."""
     
     st.session_state.optimization_running = True
+    st.session_state.show_comparison = with_baseline
     
-    with st.spinner("🤖 Multi-agent optimization in progress..."):
-        try:
-            # Create orchestrator
-            orchestrator = OptimizationOrchestrator()
-            
-            # Run optimization
-            result = orchestrator.optimize(
-                jobs=st.session_state.jobs,
-                machines=st.session_state.config['machines'],
-                constraint=st.session_state.config['constraint']
-            )
-            
-            # Store result
-            st.session_state.optimization_result = result
-            st.session_state.optimization_running = False
-            
-            if result['success']:
-                st.success(f"✅ Optimization completed in {result['optimization_time']:.2f} seconds!")
-                st.balloons()
-                # Small delay to let balloons show
-                import time
-                time.sleep(0.5)
-            else:
-                st.error("❌ Optimization failed - see results for details")
+    # Create status container for real-time updates
+    status_container = st.empty()
+    
+    try:
+        # Step 1: Baseline (if requested)
+        if with_baseline:
+            with status_container.container():
+                st.markdown("### 🤖 AI Optimization Progress")
+                with st.status("📊 Running Baseline Scheduler...", expanded=True) as status:
+                    st.write("⏳ Creating simple FIFO schedule...")
+                    baseline_scheduler = BaselineScheduler()
+                    baseline_schedule, baseline_explanation = baseline_scheduler.schedule(
+                        jobs=st.session_state.jobs,
+                        machines=st.session_state.config['machines'],
+                        constraint=st.session_state.config['constraint']
+                    )
+                    st.session_state.baseline_result = {
+                        'schedule': baseline_schedule,
+                        'explanation': baseline_explanation,
+                        'success': True
+                    }
+                    st.write("✅ Baseline schedule created!")
+                    status.update(label="✅ Baseline Complete", state="complete")
         
-        except Exception as e:
-            st.error(f"❌ Error during optimization: {str(e)}")
-            st.session_state.optimization_running = False
-            return
+        # Step 2: Multi-Agent Optimization
+        with status_container.container():
+            st.markdown("### 🤖 AI Multi-Agent Optimization")
+            
+            # Supervisor Agent
+            with st.status("👔 Supervisor Agent: Analyzing request...", expanded=True) as supervisor_status:
+                st.write("📋 Analyzing jobs, machines, and constraints...")
+                st.write(f"📦 {len(st.session_state.jobs)} jobs to schedule")
+                st.write(f"🏭 {len(st.session_state.config['machines'])} machines available")
+                import time
+                time.sleep(0.5)  # Small delay so user can see
+                st.write("✅ Analysis complete - delegating to specialist agents...")
+                supervisor_status.update(label="✅ Supervisor: Analysis Complete", state="complete")
+            
+            # Batching Agent
+            with st.status("🔄 Batching Agent: Optimizing setup times...", expanded=True) as batching_status:
+                st.write("📊 Grouping jobs by product type...")
+                st.write("🎯 Prioritizing rush orders...")
+                st.write("⚡ Minimizing setup switches...")
+                
+                # Actually run batching agent
+                from agents.batching_agent import BatchingAgent
+                batching_agent = BatchingAgent()
+                batching_schedule, _ = batching_agent.create_batched_schedule(
+                    st.session_state.jobs,
+                    st.session_state.config['machines'],
+                    st.session_state.config['constraint']
+                )
+                
+                st.write(f"✅ Created schedule with {batching_schedule.kpis.num_setup_switches if batching_schedule.kpis else 'N/A'} setup switches")
+                batching_status.update(label="✅ Batching Agent: Schedule Created", state="complete")
+            
+            # Bottleneck Agent
+            with st.status("⚖️ Bottleneck Agent: Balancing machine loads...", expanded=True) as bottleneck_status:
+                st.write("📈 Analyzing machine utilization...")
+                st.write("🔍 Detecting bottlenecks...")
+                st.write("🔀 Redistributing workload...")
+                
+                # Actually run bottleneck agent
+                from agents.bottleneck_agent import BottleneckAgent
+                bottleneck_agent = BottleneckAgent()
+                bottleneck_schedule, _ = bottleneck_agent.rebalance_schedule(
+                    batching_schedule,
+                    st.session_state.config['machines'],
+                    st.session_state.config['constraint'],
+                    st.session_state.jobs
+                )
+                
+                st.write(f"✅ Load balanced: {bottleneck_schedule.kpis.utilization_imbalance:.1f}% imbalance" if bottleneck_schedule.kpis else "✅ Load balanced")
+                bottleneck_status.update(label="✅ Bottleneck Agent: Load Balanced", state="complete")
+            
+            # Constraint Agent
+            with st.status("✅ Constraint Agent: Validating schedules...", expanded=True) as constraint_status:
+                st.write("📋 Checking shift boundaries...")
+                st.write("🔍 Validating machine downtime...")
+                st.write("⏰ Verifying rush order deadlines...")
+                
+                # Actually run constraint agent
+                from agents.constraint_agent import ConstraintAgent
+                constraint_agent = ConstraintAgent()
+                
+                batching_valid, batching_violations, _ = constraint_agent.validate_schedule(
+                    batching_schedule,
+                    st.session_state.jobs,
+                    st.session_state.config['machines'],
+                    st.session_state.config['constraint']
+                )
+                
+                bottleneck_valid, bottleneck_violations, _ = constraint_agent.validate_schedule(
+                    bottleneck_schedule,
+                    st.session_state.jobs,
+                    st.session_state.config['machines'],
+                    st.session_state.config['constraint']
+                )
+                
+                total_violations = len(batching_violations) + len(bottleneck_violations)
+                if total_violations == 0:
+                    st.write("✅ All schedules valid - no violations!")
+                else:
+                    st.write(f"⚠️ Found {total_violations} violations to resolve")
+                
+                constraint_status.update(label="✅ Constraint Agent: Validation Complete", state="complete")
+            
+            # Final Supervisor Decision
+            with st.status("👔 Supervisor Agent: Selecting best schedule...", expanded=True) as final_status:
+                st.write("⚡ Scoring candidate schedules...")
+                st.write("🎯 Evaluating KPIs (tardiness, setup, utilization)...")
+                
+                # Run full orchestrator for final decision
+                orchestrator = OptimizationOrchestrator()
+                result = orchestrator.optimize(
+                    jobs=st.session_state.jobs,
+                    machines=st.session_state.config['machines'],
+                    constraint=st.session_state.config['constraint']
+                )
+                
+                if result['success']:
+                    st.write(f"✅ Best schedule selected!")
+                    st.write(f"📊 Optimization time: {result['optimization_time']:.2f}s")
+                else:
+                    st.write("❌ Could not find valid schedule")
+                
+                final_status.update(
+                    label=f"✅ Optimization {'Complete' if result['success'] else 'Failed'}", 
+                    state="complete" if result['success'] else "error"
+                )
+        
+        # Store result
+        st.session_state.optimization_result = result
+        st.session_state.optimization_running = False
+        
+        # Show success message
+        status_container.empty()  # Clear status display
+        
+        if result['success']:
+            success_msg = f"✅ Optimization completed in {result['optimization_time']:.2f} seconds!"
+            if with_baseline:
+                success_msg += "\n📊 Baseline comparison ready!"
+            st.success(success_msg)
+            st.balloons()
+            # Small delay to let balloons show
+            import time
+            time.sleep(0.5)
+        else:
+            st.error("❌ Optimization failed - see results for details")
+    
+    except Exception as e:
+        status_container.empty()
+        st.error(f"❌ Error during optimization: {str(e)}")
+        st.session_state.optimization_running = False
+        return
     
     st.rerun()
+
 
 
 def render_output_zone():
@@ -351,6 +509,8 @@ def render_output_zone():
                 unsafe_allow_html=True)
     
     result = st.session_state.optimization_result
+    baseline_result = st.session_state.baseline_result
+    show_comparison = st.session_state.show_comparison
     
     if not result:
         st.info("ℹ️ Run optimization first to see results here.")
@@ -364,7 +524,85 @@ def render_output_zone():
     schedule = result['schedule']
     kpis = schedule.kpis
     
-    # KPIs Summary
+    # COMPARISON VIEW - Show this first if available
+    if show_comparison and baseline_result:
+        st.markdown("### 🎯 **AI Optimizer vs Baseline Comparison**")
+        st.markdown("---")
+        
+        baseline_kpis = baseline_result['schedule'].kpis
+        
+        # Improvement metrics in big cards
+        col1, col2, col3, col4 = st.columns(4)
+        
+        tardiness_improvement = ((baseline_kpis.total_tardiness - kpis.total_tardiness) / baseline_kpis.total_tardiness * 100) if baseline_kpis.total_tardiness > 0 else 0
+        setup_improvement = ((baseline_kpis.total_setup_time - kpis.total_setup_time) / baseline_kpis.total_setup_time * 100) if baseline_kpis.total_setup_time > 0 else 0
+        imbalance_improvement = ((baseline_kpis.utilization_imbalance - kpis.utilization_imbalance) / baseline_kpis.utilization_imbalance * 100) if baseline_kpis.utilization_imbalance > 0 else 0
+        
+        col1.metric(
+            "Tardiness Reduction",
+            f"{abs(tardiness_improvement):.1f}%",
+            delta=f"{kpis.total_tardiness - baseline_kpis.total_tardiness} min",
+            delta_color="inverse"
+        )
+        
+        col2.metric(
+            "Setup Time Saved",
+            f"{abs(setup_improvement):.1f}%",
+            delta=f"{kpis.total_setup_time - baseline_kpis.total_setup_time} min",
+            delta_color="inverse"
+        )
+        
+        col3.metric(
+            "Better Load Balance",
+            f"{abs(imbalance_improvement):.1f}%",
+            delta=f"{kpis.utilization_imbalance - baseline_kpis.utilization_imbalance:.1f}%",
+            delta_color="inverse"
+        )
+        
+        col4.metric(
+            "Fewer Violations",
+            f"{baseline_kpis.num_violations - kpis.num_violations}",
+            delta="Better" if kpis.num_violations < baseline_kpis.num_violations else "Same",
+            delta_color="normal"
+        )
+        
+        # Side-by-side KPI comparison table
+        st.markdown("### 📊 Detailed KPI Comparison")
+        
+        comparison_df = pd.DataFrame({
+            'Metric': ['Tardiness (min)', 'Setup Time (min)', 'Setup Switches', 'Max Utilization (%)', 'Load Imbalance (%)', 'Violations'],
+            'Baseline (FIFO)': [
+                baseline_kpis.total_tardiness,
+                baseline_kpis.total_setup_time,
+                baseline_kpis.num_setup_switches,
+                f"{baseline_kpis.max_machine_utilization:.1f}",
+                f"{baseline_kpis.utilization_imbalance:.1f}",
+                baseline_kpis.num_violations
+            ],
+            'AI Optimizer': [
+                kpis.total_tardiness,
+                kpis.total_setup_time,
+                kpis.num_setup_switches,
+                f"{kpis.max_machine_utilization:.1f}",
+                f"{kpis.utilization_imbalance:.1f}",
+                kpis.num_violations
+            ],
+            'Improvement': [
+                f"{tardiness_improvement:+.1f}%",
+                f"{setup_improvement:+.1f}%",
+                f"{baseline_kpis.num_setup_switches - kpis.num_setup_switches:+d}",
+                "-",
+                f"{imbalance_improvement:+.1f}%",
+                f"{baseline_kpis.num_violations - kpis.num_violations:+d}"
+            ]
+        })
+        
+        st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        st.markdown("### 📈 **AI Optimizer Results** (Detailed View Below)")
+    
+    # KPIs Summary (always show)
     st.markdown("### 📈 Key Performance Indicators")
     
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -405,8 +643,18 @@ def render_output_zone():
     
     # Gantt Chart
     st.markdown("### 📅 Machine Schedule - Gantt Chart")
-    gantt_fig = create_gantt_chart(schedule)
-    st.plotly_chart(gantt_fig, use_container_width=True)
+    
+    # Add product legend
+    legend_col1, legend_col2 = st.columns([3, 1])
+    with legend_col2:
+        st.markdown("**Product Types:**")
+        st.markdown("🔵 P_A (Blue)")
+        st.markdown("🟠 P_B (Orange)")
+        st.markdown("🟢 P_C (Green)")
+    
+    with legend_col1:
+        gantt_fig = create_gantt_chart(schedule)
+        st.plotly_chart(gantt_fig, use_container_width=True)
     
     st.markdown("---")
     
